@@ -1,0 +1,21 @@
+.agentskills/memory_db/
+.agentskills/backups/
+.agentskills/tmp/
+.temp_agentskills/
+graphify-out/
+.opencode/
+
+# Python ignore
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.ruff_cache/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+
+# Node/Bun ignore
+mbse/ux/node_modules/
+mbse/ux/dist/
+**/node_modules/
+**/dist/

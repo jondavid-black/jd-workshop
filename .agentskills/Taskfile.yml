@@ -1,0 +1,241 @@
+version: '3'
+
+env:
+  PATH: '$HOME/.bun/bin:$PATH'
+
+tasks:
+  # ==========================================
+  # 1. AI Task definitions (ai-)
+  # ==========================================
+
+  ai-repo-index:
+    desc: "Rebuilds or updates the structural code graph via Graphify"
+    cmds:
+      - |
+        if command -v graphify &> /dev/null; then
+          graphify update . &> /dev/null
+          echo "[Success] Code graph re-indexed via Graphify."
+        else
+          echo "[Error] 'graphify' CLI is not available in this environment." >&2
+          exit 1
+        fi
+
+  ai-repo-inspect:
+    desc: "Query the structural code graph (usage: task as:ai-repo-inspect query=\"<query_string>\")"
+    cmds:
+      - |
+        if [ -z "{{.query}}" ]; then
+          echo "[Error] No query parameter provided. Usage: task as:ai-repo-inspect query=\"...\"" >&2
+          exit 1
+        fi
+        if command -v graphify &> /dev/null; then
+          graphify query "{{.query}}"
+        else
+          echo "[Error] 'graphify' CLI is not available in this environment." >&2
+          exit 1
+        fi
+
+  ai-mem-remember:
+    desc: "Persists an engineering fact to long-term episodic memory (usage: task as:ai-mem-remember fact=\"<fact>\")"
+    cmds:
+      - |
+        FACT_VAL="{{.fact}}"
+        if [ -n "${FACT_VAL}" ]; then
+          bun .opencode/scripts/memory_cli.ts add "${FACT_VAL}"
+        else
+          echo "⚠️ No fact parameter provided. Skipping persistence."
+        fi
+
+  ai-mem-recall:
+    desc: "Searches long-term memory for semantic context (usage: task as:ai-mem-recall query=\"<query>\")"
+    cmds:
+      - |
+        QUERY_VAL="{{.query}}"
+        bun .opencode/scripts/memory_cli.ts search "${QUERY_VAL}"
+
+  ai-mem-forget:
+    desc: "Removes a fact from long-term episodic memory by ID or query (usage: task as:ai-mem-forget [id=\"<id>\"] [query=\"<query>\"])"
+    cmds:
+      - |
+        ID_VAL="{{.id}}"
+        QUERY_VAL="{{.query}}"
+        if [ -n "${ID_VAL}" ]; then
+          bun .opencode/scripts/memory_cli.ts forget --id "${ID_VAL}"
+        elif [ -n "${QUERY_VAL}" ]; then
+          bun .opencode/scripts/memory_cli.ts forget --query "${QUERY_VAL}"
+        else
+          echo "[Error] Either id or query parameter must be provided. Usage: task as:ai-mem-forget id=X or task as:ai-mem-forget query=\"Y\"" >&2
+          exit 1
+        fi
+
+  ai-capture-screenshot:
+    desc: "Captures a high-fidelity screenshot of a webpage (usage: task as:ai-capture-screenshot url=\"<url>\" output=\"<output_path>\")"
+    cmds:
+      - |
+        if [ -z "{{.url}}" ] || [ -z "{{.output}}" ]; then
+          echo "[Error] Missing arguments. Usage: task as:ai-capture-screenshot url=\"<url>\" output=\"<output_path>\"" >&2
+          exit 1
+        fi
+        bun run .opencode/skills/documentation/capture-screenshot/scripts/capture.js --url "{{.url}}" --output "{{.output}}"
+
+  ai-to-pdf:
+    desc: "Converts an HTML file or webpage to PDF (usage: task as:ai-to-pdf input=\"<file_or_url>\" [output=\"<pdf_path>\"])"
+    cmds:
+      - |
+        if [ -z "{{.input}}" ]; then
+          echo "[Error] Missing input argument. Usage: task as:ai-to-pdf input=\"<input_path_or_url>\" [output=\"<output_path>\"]" >&2
+          exit 1
+        fi
+        if [ -n "{{.output}}" ]; then
+          bun run .opencode/skills/documentation/to-pdf/scripts/convert.js --input "{{.input}}" --output "{{.output}}"
+        else
+          bun run .opencode/skills/documentation/to-pdf/scripts/convert.js --input "{{.input}}"
+        fi
+
+  ai-resume:
+    desc: "Resumes the development workflow on a feature branch from GitHub (usage: task as:ai-resume ref=\"<PR_number_or_feature_name>\")"
+    cmds:
+      - |
+        if [ -z "{{.ref}}" ]; then
+          echo "[Error] No reference parameter provided. Usage: task as:ai-resume ref=\"<PR_number_or_feature_name>\"" >&2
+          exit 1
+        fi
+        echo "🔄 Fetching remote branch details from GitHub for reference '{{.ref}}'..."
+        BRANCH_NAME=$(gh pr view "{{.ref}}" --json headRefName --template '{{.headRefName}}' 2>/dev/null)
+        if [ -z "$BRANCH_NAME" ]; then
+          echo "[Error] Could not find any active Pull Request or remote branch for '{{.ref}}'." >&2
+          exit 1
+        fi
+        echo "❇️  Found branch: $BRANCH_NAME"
+        echo "📥 Pulling latest changes and switching to branch..."
+        git fetch origin
+        if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+          echo "❇️  Branch '$BRANCH_NAME' already exists locally. Checking out..."
+          git checkout "$BRANCH_NAME"
+        else
+          echo "❇️  Branch '$BRANCH_NAME' does not exist locally. Checking out tracking branch..."
+          git checkout --track "origin/$BRANCH_NAME" 2>/dev/null || git checkout "$BRANCH_NAME"
+        fi
+        git pull origin "$BRANCH_NAME"
+        echo "✅ Branch is checked out and up-to-date! Resuming orchestrator context..."
+
+  ai-okf-update:
+    desc: "Rebuilds OKF directory indices, updates the chronological log, and verifies conformance"
+    cmds:
+      - task: ai-okf-index
+      - task: ai-okf-log
+      - task: ai-okf-lint
+        vars: { strict: "true" }
+
+  ai-okf-lint:
+    desc: "Validates the OKF Knowledge Bundle for conformance (usage: task as:ai-okf-lint [strict=true])"
+    cmds:
+      - |
+        if [ "{{.strict}}" = "true" ]; then
+          bun .opencode/scripts/okf_cli.ts lint --strict
+        else
+          bun .opencode/scripts/okf_cli.ts lint
+        fi
+
+  ai-okf-index:
+    desc: "Recursively generates and updates progressive disclosure index.md files"
+    cmds:
+      - bun .opencode/scripts/okf_cli.ts index
+
+  ai-okf-log:
+    desc: "Parses Git commit history to generate and update chronological log.md"
+    cmds:
+      - bun .opencode/scripts/okf_cli.ts log
+
+  ai-okf-search:
+    desc: "Queries the OKF Knowledge Bundle (usage: task as:ai-okf-search query=\"<query_string>\" [json=true])"
+    cmds:
+      - |
+        if [ -z "{{.query}}" ]; then
+          echo "[Error] No search query provided. Usage: task as:ai-okf-search query=\"...\"" >&2
+          exit 1
+        fi
+        if [ "{{.json}}" = "true" ]; then
+          bun .opencode/scripts/okf_cli.ts search "{{.query}}" --json
+        else
+          bun .opencode/scripts/okf_cli.ts search "{{.query}}"
+        fi
+
+  ai-mbse-report:
+    desc: "Generate automated HTML reports from the SysML v2 package baseline (usage: task as:ai-mbse-report [output=\"<path>\"])"
+    cmds:
+      - |
+        OUTPUT_VAL="{{.output}}"
+        if [ -n "${OUTPUT_VAL}" ]; then
+          bun run .opencode/scripts/mbse_crawler.ts --output "${OUTPUT_VAL}"
+        else
+          bun run .opencode/scripts/mbse_crawler.ts
+        fi
+
+  # ==========================================
+  # 2. UI Task definitions (ui-)
+  # ==========================================
+
+  ui-install:
+    desc: "Installs packages in the UX workspace using Bun"
+    cmds:
+      - task: ui-bootstrap
+      - bun install --cwd mbse/ux
+
+  ui-bootstrap:
+    desc: "Bootstraps the UX workspace from template if missing"
+    cmds:
+      - |
+        if [ ! -f "mbse/ux/package.json" ]; then
+          echo "📥 No UX workspace detected. Bootstrapping mbse/ux from templates..."
+          mkdir -p mbse/ux
+          cp -r .agentskills/templates/ux/. mbse/ux/
+          echo "🟢 UX Workspace bootstrapped inside mbse/ux successfully!"
+        else
+          echo "❇️  UX workspace is already bootstrapped."
+        fi
+
+  ui-up:
+    desc: "Starts the Storybook development server in the background"
+    dir: mbse/ux
+    cmds:
+      - bun run up
+
+  ui-down:
+    desc: "Stops the background Storybook development server"
+    dir: mbse/ux
+    cmds:
+      - bun run down
+
+  ui-build:
+    desc: "Builds the Storybook project statically"
+    dir: mbse/ux
+    cmds:
+      - bun run build-storybook
+
+  ui-validate-traceability:
+    desc: "Validates Storybook story elements to SysML model elements traceability and strict TypeScript"
+    cmds:
+      - uv run python .opencode/scripts/validate_ux_traceability.py
+
+  # ==========================================
+  # 3. Release Task definitions (release-)
+  # ==========================================
+
+  release-version:
+    desc: "Prints the current semantic version of AgentSkills"
+    silent: true
+    cmds:
+      - |
+        if [ -f ".agentskills/version.txt" ]; then
+          cat .agentskills/version.txt
+        elif [ -f "version.txt" ]; then
+          cat version.txt
+        else
+          echo "0.0.0"
+        fi
+
+  release-package:
+    desc: "Packages the project into build/ using the black-box build task"
+    cmds:
+      - task: :build

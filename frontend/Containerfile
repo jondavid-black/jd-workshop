@@ -1,0 +1,32 @@
+# Multi-stage Bun-optimized Containerfile
+FROM docker.io/oven/bun:1.1.8-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency configs
+COPY package.json ./
+
+# Install dependencies
+RUN bun install
+
+# Copy configuration and source files
+COPY tsconfig.json tailwind.config.js postcss.config.js index.html vite.config.ts ./
+COPY src/ ./src/
+
+# Build static assets
+RUN bun run build
+
+# Second stage: serve using lightweight, secure alpine image
+FROM docker.io/oven/bun:1.1.8-alpine
+
+WORKDIR /app
+
+# Copy build artifacts and serve script
+COPY --from=builder /app/dist ./dist
+COPY serve.ts ./
+
+# Expose the default port
+EXPOSE 3000
+
+# Run lightweight static file server with Bun
+CMD ["bun", "run", "serve.ts"]

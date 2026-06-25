@@ -1,0 +1,57 @@
+version: '3'
+
+includes:
+  as:
+    taskfile: .agentskills/Taskfile.yml
+    dir: .
+
+tasks:
+  build:
+    desc: "Build both frontend and backend container images"
+    cmds:
+      - podman build -t localhost/rpsls-backend:latest -f backend/Containerfile backend
+      - podman build -t localhost/rpsls-frontend:latest -f frontend/Containerfile frontend
+
+  up:
+    desc: "Start the game Kubernetes pod locally via podman play kube"
+    cmds:
+      - podman play kube pod.yaml
+      - echo "🟢 RPSLS Game started!"
+      - echo "🌐 Frontend available at http://localhost:3000"
+      - echo "🔌 Backend available at http://localhost:8000"
+
+  down:
+    desc: "Stop and tear down the locally running Kubernetes pod"
+    cmds:
+      - podman pod rm -f rpsls-pod || true
+      - echo "🔴 RPSLS Game stopped and containers removed."
+
+  test:
+    desc: "Run both backend and frontend test suites"
+    cmds:
+      - task: test-backend
+      - task: test-frontend
+
+  test-backend:
+    desc: "Run backend unit and API tests"
+    dir: backend
+    cmds:
+      - uv run pytest
+
+  test-frontend:
+    desc: "Run frontend unit and state tests"
+    dir: frontend
+    cmds:
+      - bun test
+
+  validate-mbse:
+    desc: "Validate MBSE requirement and UX traceability mappings"
+    cmds:
+      - python3 .opencode/scripts/validate_traceability.py --feature rpsls-game
+      - python3 .opencode/scripts/validate_ux_traceability.py
+
+  ci:
+    desc: "Run full continuous integration and validation checks"
+    cmds:
+      - task: test
+      - task: validate-mbse
