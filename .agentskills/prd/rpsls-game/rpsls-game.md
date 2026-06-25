@@ -90,12 +90,12 @@ The ultimate objective is to deliver a highly polished, cheat-proof, and robust 
   - **Acceptance criteria**: Run `task build && task up` boots the entire stack locally with no errors, and the user can play the full game in their host browser.
 
 ## 9. Workflow State & Checklist of Activities
-* **Current Workflow State**: **Phase 1: Problem & Domain Refinement**
+* **Current Workflow State**: **Phase 4: User Approval Gate**
 
 ### Checklist of Activities:
 - [x] Phase 1: Problem & Domain Refinement (Compile PRD, checkout branch, open Draft PR)
-- [ ] Phase 2: Architectural Modeling & UX/UI Definition (Model updates in /mbse, validate MBSE)
-- [ ] Phase 3: Planning & Backlog Refinement (Develop backlog, map blocking dependencies)
+- [x] Phase 2: Architectural Modeling & UX/UI Definition (Model updates in /mbse, validate MBSE)
+- [x] Phase 3: Planning & Backlog Refinement (Develop backlog, map blocking dependencies)
 - [ ] Phase 4: User Approval Gate (Awaiting written sign-off, record approval in Log below)
 - [ ] Phase 5: Multi-Subagent Feature Implementation (Develop, verify, document each ticket)
 - [ ] Phase 6: QA & Verification (Audit test reports, ensure zero regressions)
