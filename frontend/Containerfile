@@ -1,5 +1,5 @@
 # Multi-stage Bun-optimized Containerfile
-FROM oven/bun:1.1.8-alpine AS builder
+FROM docker.io/oven/bun:1.1.8-alpine AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY src/ ./src/
 RUN bun run build
 
 # Second stage: serve using lightweight, secure alpine image
-FROM oven/bun:1.1.8-alpine
+FROM docker.io/oven/bun:1.1.8-alpine
 
 WORKDIR /app
 
