@@ -1,0 +1,31 @@
+# Build stage
+FROM oven/bun:1.1-slim AS builder
+
+WORKDIR /app
+
+# Copy dependency configs
+COPY package.json bun.lock ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build the static site
+RUN bun run build
+
+# Runtime stage using a minimal alpine image serving static assets via bun or custom server
+FROM oven/bun:1.1-slim
+
+WORKDIR /app
+
+# Copy static assets from build stage
+COPY --from=builder /app/dist /app/dist
+
+# Install a simple static file server or use bun to serve static assets
+RUN bun install -g serve
+
+EXPOSE 3000
+
+CMD ["serve", "-s", "dist", "-l", "3000"]
