@@ -10,7 +10,7 @@ tasks:
     desc: "Build both frontend and backend container images"
     cmds:
       - podman build -t localhost/rpsls-backend:latest -f backend/Containerfile backend
-      - podman build -t localhost/rpsls-frontend:latest -f mbse/ux/Containerfile mbse/ux
+      - podman build -t localhost/rpsls-frontend:latest -f frontend/Containerfile frontend
 
   up:
     desc: "Start the game Kubernetes pod locally via podman play kube"
@@ -40,7 +40,7 @@ tasks:
 
   test-frontend:
     desc: "Run frontend unit and state tests"
-    dir: mbse/ux
+    dir: frontend
     cmds:
       - bun test
 

@@ -2,7 +2,7 @@
 type: UI Component
 title: Frontend React Game App
 description: Strictly typed React application featuring countdown mechanics, round selection, dueling reveal states, and Match scoring.
-resource: /mbse/ux/src/App.tsx
+resource: /frontend/src/App.tsx
 tags: [frontend, react, typescript, tailwind]
 timestamp: 2026-06-24
 ---
